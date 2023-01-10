@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 import math
+import matplotlib.colors as mcolors
 
 def getEdgesGold(timeSeriesFile, goldStandardFile): 
     df = pd.read_csv(timeSeriesFile, sep="\t", decimal=",")  
@@ -47,13 +48,23 @@ def getEdges(DNfilePath):
         edges.append(edge)
     return edges
 
-def plotDirectedNetwork(edges, reverse=False):
+def plotDirectedNetwork(edges, filename, reverse=False):
     G = nx.DiGraph()
     G.add_edges_from(edges)
+
+    PR = nx.pagerank(G)
+
+    d = dict(G.degree)
+
     if reverse:
         G = G.reverse(copy=True)
     pos = nx.spring_layout(G) # positions for all nodes
-    nx.draw(G, pos, with_labels=True)
+    # nx.draw(G, pos, nodelist=list(d.keys()), node_size=[v * 100 for v in d.values()], with_labels=True)
+    PR_values = [v * 10000 for v in PR.values()]
+    nx.draw(G, pos, nodelist=list(d.keys()), node_size=PR_values, node_color=PR_values, cmap=plt.cm.coolwarm, with_labels=True)
+
+    plt.subplots_adjust(wspace=0.15, hspace=0.1)
+    plt.savefig("./img/visualizations/" + filename, facecolor='white', bbox_inches="tight")
     # displaying the title
     plt.show()
 
@@ -133,9 +144,9 @@ if __name__ == "__main__":
             goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
 
             # edges = getEdges(DNfilePath)
-            # plotDirectedNetwork(edges, reverse=True) 
+            # plotDirectedNetwork(edges, reverse=True)
 
-            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath) 
-            # plotDirectedNetwork(edgesGold)
+            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
+            plotDirectedNetwork(edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
 
-            plot_distributions(edges=edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
+            # plot_distributions(edges=edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))

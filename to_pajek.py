@@ -2,7 +2,7 @@ from collections import defaultdict, OrderedDict
 import argparse
 
 def main(args):
-    filename = "example.txt"
+    filename = args.filename
 
     PATH_IN = args.path_in
     PATH_OUT = args.path_out
@@ -52,5 +52,6 @@ if __name__=='__main__':
     parser=argparse.ArgumentParser()
     parser.add_argument('--path_in', type=str, default='./data/original/')
     parser.add_argument('--path_out', type=str, default='./data/pajek/')
+    parser.add_argument('--filename', type=str, default='example.txt')
     args=parser.parse_args()
     main(args)

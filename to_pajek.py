@@ -15,8 +15,8 @@ def main(args):
     for line in lines:
         s = line.split()
 
-        from_node = int(s[2])
-        to_node = int(s[0])
+        from_node = int(s[0])
+        to_node = int(s[2])
 
         # Add both nodes to set of nodes
         nodes.add(from_node)
@@ -39,7 +39,7 @@ def main(args):
             f.write(str(node) + " " + str(node))
             f.write('\n')
 
-        f.write("*arcs " + "\n")
+        f.write("*Arcs " + "\n")
 
         for from_node in connections:
             for to_node in connections[from_node]:

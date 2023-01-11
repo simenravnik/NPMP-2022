@@ -18,9 +18,11 @@ def getEdgesGold(timeSeriesFile, goldStandardFile):
     columns = df.columns 
     columnNumbers = np.arange(1, len(df.columns)+1) 
     geneNums = {}
+    numToGene = {}
 
     for c, n in zip(columns,columnNumbers): 
-        geneNums[c] = n               
+        geneNums[c] = str(n)
+        numToGene[str(n)] = c
     
     edges = []   
 
@@ -35,7 +37,7 @@ def getEdgesGold(timeSeriesFile, goldStandardFile):
         if items[2] == '1':   
             edges.append((geneNums[items[1]], geneNums[items[0]])) #switch positions to target <- regulator                
 
-    return edges 
+    return edges, numToGene
 
 def getEdges(DNfilePath):
     # print(DNfilePath)
@@ -49,25 +51,29 @@ def getEdges(DNfilePath):
         edges.append(edge)
     return edges
 
-def plotDirectedNetwork(edges, filename, reverse=False):
+def plotDirectedNetwork(edges, file_path, numToGene, reverse=False):
     G = nx.DiGraph()
     G.add_edges_from(edges)
+    G = nx.relabel_nodes(G, numToGene)
 
     PR = nx.pagerank(G)
 
     d = dict(G.degree)
-
+    
+    fig = plt.figure()
     if reverse:
         G = G.reverse(copy=True)
     pos = nx.spring_layout(G) # positions for all nodes
+    
     # nx.draw(G, pos, nodelist=list(d.keys()), node_size=[v * 100 for v in d.values()], with_labels=True)
     PR_values = [v * 10000 for v in PR.values()]
     nx.draw(G, pos, nodelist=list(d.keys()), node_size=PR_values, node_color=PR_values, cmap=plt.cm.coolwarm, with_labels=True)
 
     plt.subplots_adjust(wspace=0.15, hspace=0.1)
-    plt.savefig("./img/visualizations/" + filename, facecolor='white', bbox_inches="tight")
+    plt.savefig(file_path, facecolor='white', bbox_inches="tight", dpi=300)
     # displaying the title
-    plt.show()
+    # plt.show()
+    plt.close()
 
 def calculate_degrees(G, degree_list):
     degree_list = sorted([i for i in degree_list if i != 0])
@@ -187,7 +193,8 @@ def plot_networks(organism, networkSizes, methods):
 if __name__ == "__main__":
 
     organism = "Ecoli"
-    networkSizes = [16, 32, 64]
+    # networkSizes = [16, 32, 64]
+    networkSizes = [16]
     methods = ["GABNI", "MIBNI", "BestFit", "REVEAL", "ATEN"]
 
     # plot_networks(organism, networkSizes, methods)
@@ -199,13 +206,15 @@ if __name__ == "__main__":
             timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
             goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
 
-            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
+            edgesGold, numToGene = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
             gold_standard_info = info(edgesGold)
 
             df_gold_standard = pd.DataFrame.from_dict([gold_standard_info])
             df_gold_standard['method'] = "GOLD_STANDARD"
             df_gold_standard.set_index('method', inplace=True)
             df_gold_standard.to_csv(os.path.join("data", "network_analysis", str(networkSize), str(networkNum),  "gold_standard.csv"))
+
+            plotDirectedNetwork(edgesGold, os.path.join("data", "network_analysis", str(networkSize), str(networkNum),  "gold_standard.png"), numToGene, reverse=False)
 
             infos_per_methode = []
             for method in methods: 
@@ -220,6 +229,12 @@ if __name__ == "__main__":
                     if os.path.exists(DNfilePath):
                         edges = getEdges(DNfilePath)
                         infos.append(info(edges, reverse=True))
+                        
+                        directory = os.path.join("data", "network_analysis", str(networkSize), str(networkNum), method)
+                        # If the directory does not exist, create it
+                        if not os.path.exists(directory):
+                            os.makedirs(directory)
+                        plotDirectedNetwork(edges, os.path.join(directory, str(crossIteration) + ".png"), numToGene, reverse=True)
 
                 df = pd.DataFrame.from_dict(infos)
                 df2 = df.mean(axis=0)

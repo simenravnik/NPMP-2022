@@ -6,7 +6,8 @@ import pandas as pd
 import numpy as np
 from collections import Counter
 import math
-import matplotlib.colors as mcolors
+import time
+import random
 
 def getEdgesGold(timeSeriesFile, goldStandardFile): 
     df = pd.read_csv(timeSeriesFile, sep="\t", decimal=",")  
@@ -37,7 +38,7 @@ def getEdgesGold(timeSeriesFile, goldStandardFile):
     return edges 
 
 def getEdges(DNfilePath):
-    print(DNfilePath)
+    # print(DNfilePath)
 
     edges = [] #list of tuples
     with open(DNfilePath) as structureFile:
@@ -125,28 +126,96 @@ def plot_distributions(edges, filename):
     plt.savefig("./img/degree-distribuitons/" + filename, facecolor='white', bbox_inches="tight")
     # plt.show()
 
+def distances(G, n = 100):
+    D = []
+    for i in G.nodes() if len(G) <= n else random.choices(list(G.nodes()), k=n):
+        D.extend([d for d in nx.shortest_path_length(G, source = i).values() if d > 0])
+    return D
+
+def info(edges, reverse=False):
+
+    G = nx.DiGraph()
+    G.add_edges_from(edges)
+
+    if reverse:
+        G = G.reverse(copy=True)
+
+    n = G.number_of_nodes()
+    m = G.number_of_edges()
+
+    D = distances(G)
+        
+    info_dict = dict()
+
+    info_dict["nodes"] = n
+    info_dict["isolates"] = nx.number_of_isolates(G)
+    info_dict["edges"] = m
+    info_dict["self_loops"] = nx.number_of_selfloops(G)
+    info_dict["degree"] = 2 * m / n if n != 0 else 0
+    info_dict["max_degree"] =  max([k for _, k in G.degree()]) if len(G.degree()) > 0 else 0
+    info_dict["density"] = 2 * m / n / (n - 1) if n > 2 else 0
+    info_dict["distance"] = sum(D) / len(D) if len(D) > 0 else 0
+    info_dict["max_distance"] = max(D) if len(D) > 0 else 0
+    if isinstance(G, nx.MultiGraph):
+        G = nx.Graph(G)
+    info_dict["clustering"] = nx.average_clustering(G) if n > 0 else 0
+    
+    return info_dict
+
+
+def plot_networks(organism, networkSizes, methods):
+    for networkSize in networkSizes:
+        for method in methods:
+            data_path = os.path.join("data", "original", organism, str(networkSize))
+            results_path = os.path.join("data", "results", organism, str(networkSize), method)
+
+            networkNum = 1
+            crossIteration = 1
+
+            DNfilePath = os.path.join(results_path, organism + "-" + str(networkNum) + "_" + str(crossIteration) + "_structure.tsv")
+            timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
+            goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
+
+            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
+            plotDirectedNetwork(edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
+
+            edges = getEdges(DNfilePath)
+            plotDirectedNetwork(edges, reverse=True)
+
+            # plot_distributions(edges=edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
+
 if __name__ == "__main__":
 
     organism = "Ecoli"
     networkSizes = [16, 32, 64]
     methods = ["GABNI", "MIBNI", "BestFit", "REVEAL", "ATEN"]
 
+    # plot_networks(organism, networkSizes, methods)
+
     for networkSize in networkSizes:
-        for networkNum in range(1, 10):
+        for method in methods:
             data_path = os.path.join("data", "original", organism, str(networkSize))
-            # results_path = os.path.join("data", "results", organism, str(networkSize), method)
+            results_path = os.path.join("data", "results", organism, str(networkSize), method)
+            average_infos = []
+            for networkNum in range(1, 11):
+                infos = []
+                for crossIteration in range(0, 10):
 
-            # networkNum = 1
-            crossIteration = 1
+                    DNfilePath = os.path.join(results_path, organism + "-" + str(networkNum) + "_" + str(crossIteration) + "_structure.tsv")
+                    # timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
+                    # goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
 
-            # DNfilePath = os.path.join(results_path, organism + "-" + str(networkNum) + "_" + str(crossIteration) + "_structure.tsv")
-            timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
-            goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
+                    # edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
+                    
+                    if os.path.exists(DNfilePath):
+                        edges = getEdges(DNfilePath)
+                        infos.append(info(edges, reverse=True))
 
-            # edges = getEdges(DNfilePath)
-            # plotDirectedNetwork(edges, reverse=True)
-
-            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
-            plotDirectedNetwork(edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
-
-            # plot_distributions(edges=edgesGold, filename=str(str(networkSize) + "-" + organism + "-" + str(networkNum) +"_goldstandard.png"))
+                df = pd.DataFrame.from_dict(infos)
+                df.to_csv(os.path.join(results_path, "results_network_info_" + str(networkNum) + ".csv"), index=False)
+                df2 = df.mean(axis=0)
+                average_infos.append(df2)
+            
+            df3 = pd.DataFrame.from_dict(average_infos)
+            df3.to_csv(os.path.join(results_path, "results_network_info_all" + ".csv"), index=False)
+                

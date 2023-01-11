@@ -193,14 +193,18 @@ def plot_networks(organism, networkSizes, methods):
 if __name__ == "__main__":
 
     organism = "Ecoli"
-    # networkSizes = [16, 32, 64]
-    networkSizes = [16]
+    networkSizes = [16, 32, 64]
     methods = ["GABNI", "MIBNI", "BestFit", "REVEAL", "ATEN"]
 
     # plot_networks(organism, networkSizes, methods)
 
     for networkSize in networkSizes:
         for networkNum in range(1, 11):
+
+            directory = os.path.join("data", "network_analysis", str(networkSize), str(networkNum), "img")
+            # If the directory does not exist, create it
+            if not os.path.exists(directory):
+                os.makedirs(directory)
             
             data_path = os.path.join("data", "original", organism, str(networkSize))
             timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
@@ -214,7 +218,8 @@ if __name__ == "__main__":
             df_gold_standard.set_index('method', inplace=True)
             df_gold_standard.to_csv(os.path.join("data", "network_analysis", str(networkSize), str(networkNum),  "gold_standard.csv"))
 
-            plotDirectedNetwork(edgesGold, os.path.join("data", "network_analysis", str(networkSize), str(networkNum),  "gold_standard.png"), numToGene, reverse=False)
+            if networkSize == networkSizes[0]:
+                plotDirectedNetwork(edgesGold, os.path.join(directory,  "gold_standard.png"), numToGene, reverse=False)
 
             infos_per_methode = []
             for method in methods: 
@@ -230,11 +235,11 @@ if __name__ == "__main__":
                         edges = getEdges(DNfilePath)
                         infos.append(info(edges, reverse=True))
                         
-                        directory = os.path.join("data", "network_analysis", str(networkSize), str(networkNum), method)
-                        # If the directory does not exist, create it
-                        if not os.path.exists(directory):
-                            os.makedirs(directory)
-                        plotDirectedNetwork(edges, os.path.join(directory, str(crossIteration) + ".png"), numToGene, reverse=True)
+                        if networkSize == networkSizes[0]:
+                            directory = os.path.join("data", "network_analysis", str(networkSize), str(networkNum), "img", method)
+                            if not os.path.exists(directory):
+                                os.makedirs(directory)
+                            plotDirectedNetwork(edges, os.path.join(directory, str(crossIteration) + ".png"), numToGene, reverse=True)
 
                 df = pd.DataFrame.from_dict(infos)
                 df2 = df.mean(axis=0)

@@ -193,8 +193,25 @@ if __name__ == "__main__":
     # plot_networks(organism, networkSizes, methods)
 
     for networkSize in networkSizes:
-        for method in methods:
+
+        # Gold standard
+        data_path = os.path.join("data", "original", organism, str(networkSize))
+        gold_standard_infos = []
+        for networkNum in range(1, 11):
+
             data_path = os.path.join("data", "original", organism, str(networkSize))
+            timeSeriesFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_dream4_timeseries.tsv")
+            goldStandardFilePath = os.path.join(data_path, organism + "-" + str(networkNum) +"_goldstandard.tsv")
+
+            edgesGold = getEdgesGold(timeSeriesFilePath, goldStandardFilePath)
+            gold_standard_info = info(edgesGold)
+            gold_standard_infos.append(gold_standard_info)
+
+        df_gold = pd.DataFrame.from_dict(gold_standard_infos)
+        df_gold.to_csv(os.path.join(data_path, "gold_standard_network_info_" + str(networkNum) + ".csv"), index=False)
+
+        # Results
+        for method in methods: 
             results_path = os.path.join("data", "results", organism, str(networkSize), method)
             average_infos = []
             for networkNum in range(1, 11):
@@ -218,4 +235,3 @@ if __name__ == "__main__":
             
             df3 = pd.DataFrame.from_dict(average_infos)
             df3.to_csv(os.path.join(results_path, "results_network_info_all" + ".csv"), index=False)
-                

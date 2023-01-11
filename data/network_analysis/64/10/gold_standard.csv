@@ -1,0 +1,2 @@
+method,nodes,isolates,edges,self_loops,degree,max_degree,density,distance,max_distance,clustering
+GOLD_STANDARD,64,0,151,0,4.71875,22,0.07490079365079365,2.022346368715084,4,0.34873358668033144

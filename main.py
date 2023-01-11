@@ -56,13 +56,14 @@ def plotDirectedNetwork(edges, file_path, numToGene, reverse=False):
     G.add_edges_from(edges)
     G = nx.relabel_nodes(G, numToGene)
 
+    if reverse:
+        G = G.reverse(copy=True)
+
     PR = nx.pagerank(G)
 
     d = dict(G.degree)
     
     fig = plt.figure()
-    if reverse:
-        G = G.reverse(copy=True)
     pos = nx.spring_layout(G) # positions for all nodes
     
     # nx.draw(G, pos, nodelist=list(d.keys()), node_size=[v * 100 for v in d.values()], with_labels=True)
@@ -239,7 +240,7 @@ if __name__ == "__main__":
                             directory = os.path.join("data", "network_analysis", str(networkSize), str(networkNum), "img", method)
                             if not os.path.exists(directory):
                                 os.makedirs(directory)
-                            plotDirectedNetwork(edges, os.path.join(directory, str(crossIteration) + ".png"), numToGene, reverse=True)
+                            plotDirectedNetwork(edges, os.path.join(directory, str(crossIteration) + ".png"), numToGene, reverse=False)
 
                 df = pd.DataFrame.from_dict(infos)
                 df2 = df.mean(axis=0)
